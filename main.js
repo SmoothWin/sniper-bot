@@ -10,6 +10,7 @@ const fs = require('fs')
 let rawdata = fs.readFileSync("./items.json")
 
 const startScrape = async ()=>{
+    let timeStart = Date.now()
     
     let recentlyBoughtItems = JSON.parse(rawdata)
     
@@ -28,6 +29,13 @@ const startScrape = async ()=>{
     while(true){
         
         await new Promise(r => setTimeout(r, VARIABLES.itemReservationLoopDelay));
+        let timeEnd = Date.now()
+        let timeElapsed = Math.floor((timeEnd - timeStart)/1000/60)
+        console.log("time elapsed in minutes",timeElapsed)
+        if(timeElapsed>=VARIABLES.refreshMarketIntervalMinutes){
+            timeStart = Date.now()
+            await page.goto("https://skinport.com/market")
+        }
         if(wentToCart || firstTimeStartingProgram){
             wentToCart = false
             firstTimeStartingProgram=false
