@@ -6,9 +6,11 @@ const VARIABLES = require("./variables")
 
 const fs = require('fs')
 //example of json data | {"itemsReserved":["Neo-Noir1429.47","Fever Dream 1022.86"]}
+
 let rawdata = fs.readFileSync("./items.json")
 
 const startScrape = async ()=>{
+    let timeStart = Date.now()
     
     let recentlyBoughtItems = JSON.parse(rawdata)
     
@@ -16,10 +18,10 @@ const startScrape = async ()=>{
     const browser = await puppeteer.launch({headless:false,defaultViewport:{width:1000, height:1000}})
     const page = await browser.newPage()
 
-        // await page.goto("https://skinport.com/signin")
+        await page.goto("https://skinport.com/signin")
 
-        // await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
-        // console.log("login successful")
+        await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
+        console.log("login successful")
 
     let wentToCart = false
     let firstTimeStartingProgram = true
@@ -27,6 +29,13 @@ const startScrape = async ()=>{
     while(true){
         
         await new Promise(r => setTimeout(r, VARIABLES.itemReservationLoopDelay));
+        let timeEnd = Date.now()
+        let timeElapsed = Math.floor((timeEnd - timeStart)/1000/60)
+        console.log("time elapsed in minutes",timeElapsed)
+        if(timeElapsed>=VARIABLES.refreshMarketIntervalMinutes){
+            timeStart = Date.now()
+            await page.goto("https://skinport.com/market")
+        }
         if(wentToCart || firstTimeStartingProgram){
             wentToCart = false
             firstTimeStartingProgram=false
