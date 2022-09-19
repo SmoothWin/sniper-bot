@@ -4,15 +4,22 @@ const puppeteer = require('puppeteer')
 const VARIABLES = require("./variables")
 
 
+const fs = require('fs')
+//example of json data | {"itemsReserved":["Neo-Noir1429.47","Fever Dream 1022.86"]}
+let rawdata = fs.readFileSync("./items.json")
+
 const startScrape = async ()=>{
+    
+    let recentlyBoughtItems = JSON.parse(rawdata)
+    
     console.log("started scrape")
     const browser = await puppeteer.launch({headless:false,defaultViewport:{width:1000, height:1000}})
     const page = await browser.newPage()
 
-        await page.goto("https://skinport.com/signin")
+        // await page.goto("https://skinport.com/signin")
 
-        await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
-        console.log("login successful")
+        // await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
+        // console.log("login successful")
 
     let wentToCart = false
     let firstTimeStartingProgram = true
@@ -54,7 +61,11 @@ const startScrape = async ()=>{
         await newest.click()
         await page.waitForSelector("div.SideFilter-header > div > div > button.LiveBtn",{timeout:9999999})
         await page.click("div.SideFilter-header > div > div > button.LiveBtn")
+        
+        await page.waitForSelector("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
+        await page.click("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
         }
+
     
     
         /////check through items
@@ -69,17 +80,26 @@ const startScrape = async ()=>{
         let count = 0
         for(const el of items){
             try{
+                let itemName = (await (await el.$("div.ItemPreview-wrapper > a > div.ItemPreview-commonInfo > div.ItemPreview-itemInfo > div.ItemPreview-itemName")).evaluate(el=>el.textContent))
                 let discountCode = (await (await el.$(".GradientLabel.ItemPreview-discount")).evaluate(el=>el.textContent)).replace("− ","").replace("%","")
                 let itemPrice = (await (await el.$("div.ItemPreview-price > div.ItemPreview-priceValue > div.Tooltip-link")).evaluate(el=>el.textContent)).replace("CA$","")
                 let addToCartTrue = await (await el.$("button.ItemPreview-mainAction")).evaluate(el=>el.textContent) == "Add to cart"
+
                 // console.log("addToCartTrue",addToCartTrue)
                 
                 // console.log(discountCode)
-    
+                
+                let wasItemAlreadySniped = recentlyBoughtItems.itemsReserved.filter(x=>x==itemName+discountCode+itemPrice).length > 0
+
                 if(count >= 2) break;
     
-                if(discountCode >= VARIABLES.discountLowerLimit && itemPrice>=VARIABLES.itemPriceLowerLimit && itemPrice <= VARIABLES.itemPriceUpperLimit && addToCartTrue){
+                if(discountCode >= VARIABLES.discountLowerLimit && itemPrice>=VARIABLES.itemPriceLowerLimit && itemPrice <= VARIABLES.itemPriceUpperLimit && addToCartTrue && wasItemAlreadySniped != true){
+                    recentlyBoughtItems.itemsReserved.push(itemName+discountCode+itemPrice)
+                    fs.writeFile("./items.json", JSON.stringify(recentlyBoughtItems), err=>{
+                        if(err) console.log("Error writing file:", err)
+                    })
                     console.log("bruh")
+
                     listOfElementsIwant.push(el)
                     count = count+1
                 }
@@ -89,8 +109,7 @@ const startScrape = async ()=>{
         }
         // console.log(listOfElementsIwant)
         
-        await page.waitForSelector("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
-        await page.click("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
+       
 
         if(listOfElementsIwant.length < 1){
             console.log("restarting loop")
