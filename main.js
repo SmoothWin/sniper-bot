@@ -2,6 +2,8 @@ const puppeteer = require('puppeteer')
 
 //custom variable file
 const VARIABLES = require("./variables")
+//notification mp3
+const notification = require("./notification")
 
 
 const fs = require('fs')
@@ -34,7 +36,7 @@ const startScrape = async ()=>{
         console.log("time elapsed in minutes",timeElapsed)
         if(timeElapsed>=VARIABLES.refreshMarketIntervalMinutes){
             timeStart = Date.now()
-            await page.goto("https://skinport.com/market")
+            wentToCart = true
         }
         if(wentToCart || firstTimeStartingProgram){
             wentToCart = false
@@ -154,50 +156,31 @@ const startScrape = async ()=>{
         if(cancelationBox != null){
             await cancelationBox.click()
         }
+
+        if(tradelockBox==null && cancelationBox == null){
+            wentToCart = true
+            continue
+        }
     
         await page.click("div.CartSummary-payment > div > button")
         await page.waitForResponse(response=>response.url().includes("https://checkoutshopper-live.adyen.com/checkoutshopper/securedfields/live_ISN24H4WJFDWNBNUGGHCLKXXDIH4UEVI/4.2.1/securedFields.html") && response.status() == 200)
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
     
         const cvcIFrame = await page.$("iframe[title='Iframe for secured card security code']")
+        if(cvcIFrame == null){
+            wentToCart = true
+            continue
+        }
         const cvcBox = await cvcIFrame.contentFrame()
         const cvcFrameInputBox = await cvcBox.$("[data-fieldtype='encryptedSecurityCode']")
         if(cvcFrameInputBox != null){
-    
             await cvcFrameInputBox.focus()
             await cvcFrameInputBox.type("000")
             await page.click(".adyen-checkout__button.adyen-checkout__button--pay")
+            notification()
         }
 
     }
-    
-    // await page.type("div.gsf-holder > input[aria-label='Security code']","000")
-    
-    // await page.waitForSelector(".ItemPreview-itemInfo")
-    // console.log(await(await items[0].getProperty()).jsonValue())
-
-    // // const filteredItems = 
-    
-    // for(const x of items){
-    // // items.forEach(async (x)=>{
-    //     console.log(await x.evaluate((e)=>{
-    //         console.log(e.textContent)
-    //     }))
-        
-        // let discount = await x(".ItemPreview-price")
-        // console.log(discount)
-    //     if(discount >= 29){
-    //         return true
-    //     }
-    //     return false
-    // })
-    // }
-
-    // console.log(filteredItems.length)
-
-
-
-    
 }
 
 startScrape()
