@@ -144,7 +144,12 @@ const startScrape = async ()=>{
         wentToCart=true
         
         //problems here does not find the selector
-        await page.waitForSelector(".Checkbox-input[name=tradelock]")
+        try{
+            await page.waitForSelector(".Checkbox-input")
+        }catch(e){
+            wentToCart = true
+            continue
+        }
         const tradelockBox = await page.$(".Checkbox-input[name=tradelock]")
         const cancelationBox = await page.$(".Checkbox-input[name=cancellation]")
         console.log("tradelockBox",tradelockBox)
