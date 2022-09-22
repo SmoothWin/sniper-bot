@@ -42,13 +42,32 @@ const startScrape = async ()=>{
             wentToCart = false
             firstTimeStartingProgram=false
         await page.goto("https://skinport.com/market")
-        await page.waitForSelector("div.CatalogHeader-right > button",{visible:true,timeout:99999999})
+        try{
+            console.log("waiting to select the menu button")
+            await page.waitForSelector("div.CatalogHeader-right > button",{visible:true,timeout:99999999})
+        }catch(e){
+            wentToCart = true
+            continue
+        }
+        
         await page.click("div.CatalogHeader-right > button")
-        await page.waitForSelector(".SideFilter.SideFilter--opened",{visible:true,timeout:99999999})
+        try{
+            console.log("waiting to have the sidebar opened")
+            await page.waitForSelector(".SideFilter.SideFilter--opened",{visible:true,timeout:99999999})
+        }catch(e){
+            wentToCart = true
+            continue
+        }
         // await page.hover(".Dropdown-button")
         await new Promise(r => setTimeout(r, 600));
         await page.click("div.SideFilter-header > div > div > div > button.Dropdown-button")
-        await page.waitForSelector(".Dropdown-itemText",{visible:true,timeout:99999999})
+        try{
+            console.log("waiting to for the dropdown text filters to appear")
+            await page.waitForSelector(".Dropdown-itemText",{visible:true,timeout:99999999})
+        }catch(e){
+            wentToCart = true
+            continue
+        }
         const dropDownList = await page.$$(".Dropdown-itemText")
         // console.log(dropDownList)
         // const newest = dropDownList.filter(async (x)=>{
@@ -70,10 +89,22 @@ const startScrape = async ()=>{
         // console.log(await newest.evaluate(x=>x.textContent))
         
         await newest.click()
-        await page.waitForSelector("div.SideFilter-header > div > div > button.LiveBtn",{timeout:9999999})
+        try{
+            console.log("waiting in order to click the 'live' button")
+            await page.waitForSelector("div.SideFilter-header > div > div > button.LiveBtn")
+        }catch(e){
+            wentToCart = true
+            continue
+        }
         await page.click("div.SideFilter-header > div > div > button.LiveBtn")
         
-        await page.waitForSelector("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
+        try{
+            console.log("waiting to close the sidebar")
+            await page.waitForSelector("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
+        }catch(e){
+            wentToCart = true
+            continue
+        }
         await page.click("div.CommonLayout.CommonLayout--filterShown > div.CommonLayout-filter > div > div.SideFilter-header > div > button")
         }
 
@@ -145,6 +176,7 @@ const startScrape = async ()=>{
         
         //problems here does not find the selector
         try{
+            console.log("detecting if input boxes are present")
             await page.waitForSelector(".Checkbox-input")
         }catch(e){
             wentToCart = true
@@ -168,7 +200,14 @@ const startScrape = async ()=>{
         }
     
         await page.click("div.CartSummary-payment > div > button")
-        await page.waitForResponse(response=>response.url().includes("https://checkoutshopper-live.adyen.com/checkoutshopper/securedfields/live_ISN24H4WJFDWNBNUGGHCLKXXDIH4UEVI/4.2.1/securedFields.html") && response.status() == 200)
+        try{
+            console.log("waiting for checkout box to be finished loading")
+            await page.waitForResponse(response=>response.url().includes("https://checkoutshopper-live.adyen.com/checkoutshopper/securedfields/live_ISN24H4WJFDWNBNUGGHCLKXXDIH4UEVI/4.2.1/securedFields.html") && response.status() == 200)
+        }catch(e){
+            wentToCart = true
+            continue
+        }
+        
         await new Promise(r => setTimeout(r, 2500));
     
         const cvcIFrame = await page.$("iframe[title='Iframe for secured card security code']")
