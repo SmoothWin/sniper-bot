@@ -1,10 +1,14 @@
 const puppeteer = require('puppeteer')
+const axios = require('axios').default
 
 //custom variable file
 const VARIABLES = require("./variables")
 //notification mp3
 const notification = require("./notification")
-
+//data reformatter for json file
+const reformatAsKeyValue = require("./itemNameReformatter")
+//discount checker
+const discountChecker = require("./itemPriceDiscountChecker")
 
 const fs = require('fs')
 //example of json data | {"itemsReserved":["Neo-Noir1429.47","Fever Dream 1022.86"]}
@@ -12,6 +16,11 @@ const fs = require('fs')
 let rawdata = fs.readFileSync("./items.json")
 
 const startScrape = async ()=>{
+    
+    let itemGlobalPriceData = (await axios.get("https://prices.csgotrader.app/latest/prices_v6.json")).data
+    setInterval(async ()=>{
+        itemGlobalPriceData = (await axios.get("https://prices.csgotrader.app/latest/prices_v6.json")).data
+    },1000*60*60*24)
     let timeStart = Date.now()
     
     let recentlyBoughtItems = JSON.parse(rawdata)
@@ -59,7 +68,7 @@ const startScrape = async ()=>{
             continue
         }
         // await page.hover(".Dropdown-button")
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 1000));
         await page.click("div.SideFilter-header > div > div > div > button.Dropdown-button")
         try{
             console.log("waiting to for the dropdown text filters to appear")
@@ -122,11 +131,15 @@ const startScrape = async ()=>{
         let count = 0
         for(const el of items){
             try{
+                let itemType = (await (await el.$("div.ItemPreview-wrapper > a > div.ItemPreview-commonInfo > div.ItemPreview-itemInfo > div.ItemPreview-itemTitle")).evaluate(el=>el.textContent))
                 let itemName = (await (await el.$("div.ItemPreview-wrapper > a > div.ItemPreview-commonInfo > div.ItemPreview-itemInfo > div.ItemPreview-itemName")).evaluate(el=>el.textContent))
-                let discountCode = (await (await el.$(".GradientLabel.ItemPreview-discount")).evaluate(el=>el.textContent)).replace("− ","").replace("%","")
+                let itemFloat = (await (await el.$("div.ItemPreview-wrapper > a > div.ItemPreview-commonInfo > div.ItemPreview-itemInfo > div.ItemPreview-itemText")).evaluate(el=>el.textContent))
+
+                // let discountCode = (await (await el.$(".GradientLabel.ItemPreview-discount")).evaluate(el=>el.textContent)).replace("− ","").replace("%","")
                 let itemPrice = (await (await el.$("div.ItemPreview-price > div.ItemPreview-priceValue > div.Tooltip-link")).evaluate(el=>el.textContent)).replace("CA$","")
                 let addToCartTrue = await (await el.$("button.ItemPreview-mainAction")).evaluate(el=>el.textContent) == "Add to cart"
 
+                console.log(reformatAsKeyValue(itemType, itemName, itemFloat))
                 // console.log("addToCartTrue",addToCartTrue)
                 
                 // console.log(discountCode)
@@ -135,7 +148,8 @@ const startScrape = async ()=>{
 
                 if(count >= 2) break;
     
-                if(discountCode >= VARIABLES.discountLowerLimit && itemPrice>=VARIABLES.itemPriceLowerLimit && itemPrice <= VARIABLES.itemPriceUpperLimit && addToCartTrue && wasItemAlreadySniped != true){
+                let bitSkinPrice = itemGlobalPriceData[reformatAsKeyValue(itemType, itemName, itemFloat)]?.buff163?.highest_order.price
+                if(discountChecker(itemPrice,bitSkinPrice) >= VARIABLES.buyProfitPercentageThreshold && itemPrice>=VARIABLES.itemPriceLowerLimit && itemPrice <= VARIABLES.itemPriceUpperLimit && addToCartTrue && wasItemAlreadySniped != true){
                     recentlyBoughtItems.itemsReserved.push(itemName+discountCode+itemPrice)
                     fs.writeFile("./items.json", JSON.stringify(recentlyBoughtItems), err=>{
                         if(err) console.log("Error writing file:", err)
