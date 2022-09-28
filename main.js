@@ -29,10 +29,10 @@ const startScrape = async ()=>{
     const browser = await puppeteer.launch({headless:false,defaultViewport:{width:1000, height:1000}})
     const page = await browser.newPage()
 
-        // await page.goto("https://skinport.com/signin")
+        await page.goto("https://skinport.com/signin")
 
-        // await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
-        // console.log("login successful")
+        await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
+        console.log("login successful")
 
     let wentToCart = false
     let firstTimeStartingProgram = true
