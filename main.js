@@ -29,10 +29,10 @@ const startScrape = async ()=>{
     const browser = await puppeteer.launch({headless:false,defaultViewport:{width:1000, height:1000}})
     const page = await browser.newPage()
 
-        await page.goto("https://skinport.com/signin")
+        // await page.goto("https://skinport.com/signin")
 
-        await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
-        console.log("login successful")
+        // await page.waitForFunction("window.location.pathname == '/'",{timeout:9999999})
+        // console.log("login successful")
 
     let wentToCart = false
     let firstTimeStartingProgram = true
@@ -69,8 +69,10 @@ const startScrape = async ()=>{
         }
         // await page.hover(".Dropdown-button")
         await new Promise(r => setTimeout(r, 1000));
-        await page.click("div.SideFilter-header > div > div > div > button.Dropdown-button")
+        
         try{
+            console.log("clicking dropdown button")
+            await page.click("div.SideFilter-header > div > div > div > button.Dropdown-button")
             console.log("waiting to for the dropdown text filters to appear")
             await page.waitForSelector(".Dropdown-itemText",{visible:true,timeout:99999999})
         }catch(e){
